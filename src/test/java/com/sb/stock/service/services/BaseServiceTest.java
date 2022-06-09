@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.sb.stock.model.StockDto;
 import com.sb.stock.service.domain.Stock;
-import com.sb.stock.service.repositories.StockRepository;
+import com.sb.stock.service.repositories.GenericRepository;
 import com.sb.stock.service.services.StockService;
 
 public abstract class BaseServiceTest {
@@ -28,7 +28,7 @@ public abstract class BaseServiceTest {
 	StockService StockService;
 
 	@Autowired
-	StockRepository StockRepository;
+	GenericRepository StockRepository;
 
 	StockDto testStockDto1;
 	StockDto testStockDto2;

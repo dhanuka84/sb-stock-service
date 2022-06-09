@@ -22,6 +22,7 @@ import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.services.StockService;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequestMapping("/api/")
@@ -39,7 +40,7 @@ public class StockController {
 
     @PostMapping(path = "stocks", produces = "application/json", consumes = "application/json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto createStock(@Valid @RequestBody final StockDto stockDto) {
+    public Mono<StockDto> createStock(@Valid @RequestBody Mono<StockDto> stockDto) {
 
 	return stockService.createStock(stockDto);
 
@@ -63,13 +64,13 @@ public class StockController {
 
     @GetMapping(path = "stocks/{stockId}")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto getStocksById(@PathVariable("stockId") Long stockId) {
+    public Mono<StockDto> getStocksById(@PathVariable("stockId") Long stockId) {
 	return stockService.getStocksById(stockId);
     }
 
     @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId,
+    public Mono<StockDto> updateStocksById(@PathVariable("stockId") Long stockId,
 	    @RequestBody JsonPatch patch) {
 	return stockService.updatePriceById(stockId,patch);
     }
@@ -78,7 +79,7 @@ public class StockController {
 
     @DeleteMapping("stocks/{stockId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteStocks(@PathVariable("stockId") long stockId) {
+    public Mono<Void> deleteStocks(@PathVariable("stockId") long stockId) {
 	stockService.deleteStock(stockId);
     }
 

@@ -1,6 +1,5 @@
 package com.sb.stock.service.services;
 
-import static org.apache.commons.collections4.CollectionUtils.emptyIfNull;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -9,47 +8,48 @@ import java.util.stream.Collectors;
 import javax.json.JsonPatch;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
+import javax.transaction.Transactional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
 import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.domain.Stock;
 import com.sb.stock.service.exception.NotFound;
-import com.sb.stock.service.repositories.StockRepository;
 import com.sb.stock.service.web.mappers.StockMapper;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
 
-    private final StockRepository stockRepository;
-    private final StockMapper stockMapper;
-    private final ObjectMapper objectMapper;
+    @Autowired
+    private StockHandler handler;
+    @Autowired
+    private StockMapper stockMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
-    @Transactional
-    public StockDto createStock(final StockDto stockDto) {
+    public Mono<StockDto> createStock(final Mono<StockDto> stockDto) {
 	log.debug("================ Placing a Stock ============",stockDto);
-	final Stock stock = stockMapper.dtoToStock(stockDto);
-	stock.setId(null);
-	
-	stockRepository.saveAndFlush(stock);
-	return stockMapper.stockToDto(stock);
+	return  stockDto
+		.map(stockMapper::dtoToStock)
+                .flatMap(handler::create)
+                .map(stockMapper::stockToDto);
     }
     
     @Override
     public StockPagedList listStocks(Pageable pageable) {
-	Page<Stock> stockPage = stockRepository.findAll(pageable);
+	Page<Stock> stockPage = handler.findAll(pageable);
 
         return new StockPagedList(stockPage
                 .stream()
@@ -64,35 +64,31 @@ public class StockServiceImpl implements StockService {
 
 
     @Override
-    public List<StockDto> getStocks() {
-	final List<Stock> stats = stockRepository.findAll();
-	List<StockDto> list = emptyIfNull(stats).stream().map(v -> stockMapper.stockToDto(v)).collect(Collectors.toList());
-	return list;
+    public Flux<StockDto> getStocks() {
+	return handler.all().map(stockMapper::stockToDto);
     }
 
     @Override
-    @Transactional
-    public void deleteStock(long stockId) {	
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	deleteStockById(stock);
+    public Mono<Void> deleteStock(Long stockId) {	
+	return handler.get(stockId).flatMap(handler::delete);
 	
     }
     
     
     private void deleteStockById(Stock stock) {
-	stockRepository.delete(stock);
+	handler.delete(stock);
     }
 
     @Override
     public StockDto getStocksById(long stockId) {
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
+	final Stock stock = handler.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
 	return stockMapper.stockToDto(stock);
     }
 
     @Override   
-    @Transactional
+
     public StockDto updatePriceById(long stockId, JsonPatch patchDocument) {
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
+	final Stock stock = handler.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
 	final Stock modified = applyPatchToStock(patchDocument, stock);
 	Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 	modified.setLastUpdate(timestamp);
@@ -115,7 +111,7 @@ public class StockServiceImpl implements StockService {
     
     private StockDto updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
-	final Stock updated = stockRepository.saveAndFlush(stock);
+	final Stock updated = handler.saveAndFlush(stock);
 	return stockMapper.stockToDto(updated);
     }
 
