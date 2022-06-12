@@ -26,18 +26,16 @@ public class StockRepository extends GenericRepository<Stock, Long> {
 	return super.findAll(sessionFactory);
     }
 
-    public Uni<List<Stock>> findByKeyword(int offset, int limit, String q) {
+    public Uni<List<Stock>> findByKeyword(int offset, int limit, String keyword) {
 	CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
 	CriteriaQuery<Stock> query = cb.createQuery(entityClass);
 	// set the root class
 	Root<Stock> root = query.from(entityClass);
 
 	// if keyword is provided
-
-	query.where(cb.or(cb.like(root.get(Stock_.name), "%" + q + "%")
-
-	));
-
+	if(keyword != null) {
+	   // query.where(cb.or(cb.like(root.get(Stock_.name), "%" + keyword + "%")));
+	}
 	return super.findByKeyword(offset, limit, sessionFactory, query);
     }
 
@@ -64,7 +62,7 @@ public class StockRepository extends GenericRepository<Stock, Long> {
         // set the root class
         Root<Stock> root = delete.from(entityClass);
         // set where clause
-        delete.where(cb.equal(root.get(Stock_.id), id));
+        delete.where(cb.equal(root.get("id"), id));
 	return super.deleteById(sessionFactory,delete);
     }
     

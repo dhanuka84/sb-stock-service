@@ -2,28 +2,22 @@ package com.sb.stock.service.services;
 
 
 import java.sql.Timestamp;
-import java.util.stream.Collectors;
 
 import javax.json.JsonPatch;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.domain.Stock;
-import com.sb.stock.service.exception.NotFound;
 import com.sb.stock.service.web.mappers.StockMapper;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -37,7 +31,7 @@ public class StockServiceImpl implements StockService {
     private ObjectMapper objectMapper;
 
     @Override
-    public Mono<StockDto> createStock(final Mono<StockDto> stockDto) {
+    public Uni<StockDto> createStock(final Uni<StockDto> stockDto) {
 	log.debug("================ Placing a Stock ============",stockDto);
 	return  stockDto
 		.map(stockMapper::dtoToStock)
@@ -46,49 +40,43 @@ public class StockServiceImpl implements StockService {
     }
     
     @Override
-    public StockPagedList listStocks(Pageable pageable) {
-	Page<Stock> stockPage = handler.findAll(pageable);
+    public Multi<StockDto> listStocks(int pageNumber, int size) {
+	Multi<Stock> stockPage = handler.listStocks(pageNumber,size);
+	return stockPage.map(stockMapper::stockToDto);
 
-        return new StockPagedList(stockPage
-                .stream()
-                .map(stockMapper::stockToDto)
-                .collect(Collectors.toList()), PageRequest.of(
-                stockPage.getPageable().getPageNumber(),
-                stockPage.getPageable().getPageSize()),
-                stockPage.getTotalElements());
+	/*
+	 * return new StockPagedList(stockPage .stream() .map(stockMapper::stockToDto)
+	 * .collect(Collectors.toList()), PageRequest.of(
+	 * stockPage.getPageable().getPageNumber(),
+	 * stockPage.getPageable().getPageSize()), stockPage.getTotalElements());
+	 */
     }
     
 
 
 
     @Override
-    public Flux<StockDto> getStocks() {
+    public Multi<StockDto> getStocks() {
 	return handler.all().map(stockMapper::stockToDto);
     }
 
     @Override
-    public Mono<Void> deleteStock(Long stockId) {	
+    public Uni<Void> deleteStock(Long stockId) {	
 	return handler.get(stockId).flatMap(handler::delete);
 	
     }
     
-    
-    private void deleteStockById(Stock stock) {
-	handler.delete(stock);
-    }
 
     @Override
-    public Mono<StockDto> getStocksById(Long stockId) {
+    public Uni<StockDto> getStocksById(Long stockId) {
 	return handler.get(stockId).map(stockMapper::stockToDto);
     }
 
     @Override 
-    public StockDto updatePriceById(long stockId, JsonPatch patchDocument) {
-	final Stock stock = handler.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	final Stock modified = applyPatchToStock(patchDocument, stock);
-	Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-	modified.setLastUpdate(timestamp);
-	return updateStock(modified);
+    public Uni<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument) {
+	return handler.get(stockId)
+		.map(i -> applyPatchToStock(patchDocument, i) )
+		.flatMap(this::updateStock);
     }
     
     private Stock applyPatchToStock(JsonPatch patchDocument, Stock targetStock) {
@@ -101,14 +89,15 @@ public class StockServiceImpl implements StockService {
 
         //Converts the JsonValue to a User instance
         Stock modifiedStock = objectMapper.convertValue(pachedStock, Stock.class);
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        modifiedStock.setLastUpdate(timestamp);
         return modifiedStock;
     }
     
     
-    private StockDto updateStock(final Stock stock) {
+    private Uni<StockDto> updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
-	final Stock updated = handler.update(stock);
-	return stockMapper.stockToDto(updated);
+	return handler.update(stock).map(stockMapper::stockToDto);
     }
 
 }

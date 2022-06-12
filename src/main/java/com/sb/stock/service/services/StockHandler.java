@@ -1,20 +1,17 @@
 package com.sb.stock.service.services;
 
-import static io.smallrye.mutiny.converters.uni.UniReactorConverters.toMono;
-import static io.smallrye.mutiny.converters.uni.UniReactorConverters.toFlux;
+import java.time.Duration;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.sb.stock.service.domain.Stock;
 import com.sb.stock.service.exception.NotFound;
 import com.sb.stock.service.repositories.StockRepository;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
@@ -23,33 +20,36 @@ class StockHandler {
 
     private final StockRepository posts;
 
-    public Flux<Stock> all() {
-        return posts.findAll().convert().with(toMono()).flatMapMany(Flux::fromIterable);
+    public Multi<Stock> all() {
+        //return posts.findAll().convert().with(toUni()).flatMapMany(Flux::fromIterable);
+        return posts.findAll().onItem().disjoint();
     }
 
-    public Mono<Stock> create(Stock stock) {
-        
-        return posts.save(stock).convert().with(toMono());
+    public Uni<Stock> create(Stock stock) {
+        return posts.save(stock);
+    }
+    
+    public Multi<Stock> listStocks(int offset, int limit) {
+	return posts.findByKeyword(offset, limit, null).onItem().disjoint();
     }
 
-    public Mono<Stock> get(Long id) {
-        return this.posts.findById(id).convert().with(toMono())
-            .doOnError(error -> log.error("Got error: "+ error.getMessage()))
-            .switchIfEmpty(Mono.error(new NotFound(id.toString())));
+    public Uni<Stock> get(Long id) {
+        return this.posts.findById(id)
+            .onFailure().invoke(error -> log.error("Got error: "+ error.getMessage()))
+            .ifNoItem().after(Duration.ofMillis(10)).failWith(new NotFound("No any stock"));
     }
 
-    public Mono<Stock> update(Stock stock) {
-
-	return posts.update(stock).convert().with(toMono());
+    public Uni<Stock> update(Stock stock) {
+	return posts.update(stock);
     }
 
-    public Mono<Long> delete(Long id) {
-        return this.posts.deleteById(id).convert().with(toMono());
+    public Uni<Long> delete(Long id) {
+        return this.posts.deleteById(id);
           
     }
     
-    public Mono<Void> delete(Stock stock) {
-        return this.posts.delete(stock).convert().with(toMono());
+    public Uni<Void> delete(Stock stock) {
+        return this.posts.delete(stock);
           
     }
 }

@@ -2,27 +2,26 @@ package com.sb.stock.service.services;
 
 import javax.json.JsonPatch;
 
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
 import org.springframework.validation.annotation.Validated;
 
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 
 @Validated
 public interface StockService {
 
-    Mono<StockDto> createStock(Mono<StockDto> stockDto);
+    Uni<StockDto> createStock(Uni<StockDto> stockDto);
 
-    Flux<StockDto> getStocks();
+    Multi<StockDto> getStocks();
     
-    StockPagedList listStocks(Pageable pageable);
+    Multi<StockDto> listStocks(int pageNumber, int size);
 
-    Mono<Void> deleteStock(Long stockId);
+    Uni<Void> deleteStock(Long stockId);
 
-    Mono<StockDto> getStocksById(Long stockId);
+    Uni<StockDto> getStocksById(Long stockId);
 
-    Mono<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument);
+    Uni<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument);
+
 }
