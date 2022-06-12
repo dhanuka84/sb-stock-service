@@ -80,7 +80,7 @@ public class StockController {
     @DeleteMapping("stocks/{stockId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public Mono<Void> deleteStocks(@PathVariable("stockId") long stockId) {
-	stockService.deleteStock(stockId);
+	return stockService.deleteStock(stockId);
     }
 
 }

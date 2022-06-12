@@ -2,13 +2,11 @@ package com.sb.stock.service.services;
 
 
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.json.JsonPatch;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
-import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
@@ -80,13 +78,11 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public StockDto getStocksById(long stockId) {
-	final Stock stock = handler.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	return stockMapper.stockToDto(stock);
+    public Mono<StockDto> getStocksById(Long stockId) {
+	return handler.get(stockId).map(stockMapper::stockToDto);
     }
 
-    @Override   
-
+    @Override 
     public StockDto updatePriceById(long stockId, JsonPatch patchDocument) {
 	final Stock stock = handler.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
 	final Stock modified = applyPatchToStock(patchDocument, stock);
@@ -111,7 +107,7 @@ public class StockServiceImpl implements StockService {
     
     private StockDto updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
-	final Stock updated = handler.saveAndFlush(stock);
+	final Stock updated = handler.update(stock);
 	return stockMapper.stockToDto(updated);
     }
 
