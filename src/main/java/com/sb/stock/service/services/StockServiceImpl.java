@@ -62,7 +62,8 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public Uni<Void> deleteStock(Long stockId) {	
-	return handler.get(stockId).flatMap(handler::delete);
+	return handler.get(stockId).map(Stock::getId)
+		.flatMap(handler::deleteById).replaceWithVoid();
 	
     }
     

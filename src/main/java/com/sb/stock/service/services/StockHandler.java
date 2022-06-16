@@ -43,7 +43,7 @@ class StockHandler {
 	return posts.update(stock);
     }
 
-    public Uni<Long> delete(Long id) {
+    public Uni<Long> deleteById(Long id) {
         return this.posts.deleteById(id);
           
     }
