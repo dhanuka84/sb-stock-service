@@ -13,6 +13,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Proxy;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -60,6 +62,7 @@ public class Stock {
 	@Column(updatable = true,name="lastUpdate")
 	private Timestamp lastUpdate;
 
+	@JsonProperty("currentPrice")
 	@Column(updatable = true,name="currentPrice")
 	private BigDecimal currentPrice;
 	

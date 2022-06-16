@@ -75,7 +75,8 @@ public class StockServiceImpl implements StockService {
 
     @Override 
     public Uni<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument) {
-	return handler.get(stockId)
+	Uni<Stock> stock = handler.get(stockId);
+	return stock
 		.map(i -> applyPatchToStock(patchDocument, i) )
 		.flatMap(this::updateStock);
     }
@@ -98,7 +99,8 @@ public class StockServiceImpl implements StockService {
     
     private Uni<StockDto> updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
-	return handler.update(stock).map(stockMapper::stockToDto);
+	Uni<Stock> updated = handler.update(stock);
+	return updated.map(stockMapper::stockToDto);
     }
 
 }

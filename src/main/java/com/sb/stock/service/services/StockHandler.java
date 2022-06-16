@@ -36,7 +36,7 @@ class StockHandler {
     public Uni<Stock> get(Long id) {
         return this.posts.findById(id)
             .onFailure().invoke(error -> log.error("Got error: "+ error.getMessage()))
-            .ifNoItem().after(Duration.ofMillis(10)).failWith(new NotFound("No any stock"));
+            .ifNoItem().after(Duration.ofMillis(100)).failWith(new NotFound("No any stock"));
     }
 
     public Uni<Stock> update(Stock stock) {

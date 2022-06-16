@@ -20,9 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class StockDto {
 
-	/*
-	 * @Null private UUID id = null;
-	 */
+	
 	@Null
 	private Long id = null;
 
@@ -37,6 +35,7 @@ public class StockDto {
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING)
 	@NotNull(message = "Amount is required")
+	@JsonProperty("currentPrice")
 	private BigDecimal currentPrice;
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING)
