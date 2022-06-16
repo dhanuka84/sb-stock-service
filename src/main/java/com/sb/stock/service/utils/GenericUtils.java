@@ -5,8 +5,9 @@ import java.lang.reflect.Type;
 
 public class GenericUtils {
 
-    public Class<?> getGenericClass(int index) {
-	Type mySuperclass = getClass().getGenericSuperclass();
+    public Class<?> getGenericClass(Object obj, int index) {
+	Type mySuperclass = obj.getClass().getGenericSuperclass();
+	System.out.println("============================================ "+ mySuperclass);
 	Type tType = ((ParameterizedType) mySuperclass).getActualTypeArguments()[index];
 	String className = tType.toString().split(" ")[1];
 	try {

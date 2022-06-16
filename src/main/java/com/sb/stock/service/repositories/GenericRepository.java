@@ -1,6 +1,8 @@
 package com.sb.stock.service.repositories;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,9 +25,10 @@ public abstract class GenericRepository<T, ID> {
     private static final GenericUtils genericUtil = new GenericUtils();
 
     @SuppressWarnings("unchecked")
-    final Class<T> entityClass = (Class<T>) genericUtil.getGenericClass(0);
+    final Class<T> entityClass = (Class<T>) genericUtil.getGenericClass(this, 0);
     @SuppressWarnings("unchecked")
-    final Class<ID> idClass = (Class<ID>) genericUtil.getGenericClass(1);
+    final Class<ID> idClass = (Class<ID>) genericUtil.getGenericClass(this, 1);
+
 
     protected Uni<List<T>> findAll(final Mutiny.SessionFactory sessionFactory) {
 	CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();

@@ -1,6 +1,9 @@
 
 package com.sb.stock;
 
+import javax.persistence.Persistence;
+
+import org.hibernate.reactive.mutiny.Mutiny;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -40,5 +43,11 @@ public class StockApplication {
 	HttpHandler handler = WebHttpHandlerBuilder.applicationContext(context).build();
 	ReactorHttpHandlerAdapter adapter = new ReactorHttpHandlerAdapter(handler);
 	return HttpServer.create().host("localhost").port(this.port).handle(adapter);
+    }
+    
+    @Bean
+    public Mutiny.SessionFactory sessionFactory() {
+        return Persistence.createEntityManagerFactory("blogPU")
+            .unwrap(Mutiny.SessionFactory.class);
     }
 }
