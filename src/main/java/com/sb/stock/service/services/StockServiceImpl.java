@@ -2,19 +2,18 @@ package com.sb.stock.service.services;
 
 import static org.apache.commons.collections4.CollectionUtils.emptyIfNull;
 
-import java.sql.Timestamp;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-
-import javax.json.JsonPatch;
-import javax.json.JsonStructure;
-import javax.json.JsonValue;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ReflectionUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
@@ -23,6 +22,7 @@ import com.sb.stock.service.domain.Stock;
 import com.sb.stock.service.exception.NotFound;
 import com.sb.stock.service.repositories.StockRepository;
 import com.sb.stock.service.web.mappers.StockMapper;
+import com.sb.stock.utils.FieldValueSelector;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,32 +91,21 @@ public class StockServiceImpl implements StockService {
 
     @Override   
     @Transactional
-    public StockDto updatePriceById(long stockId, JsonPatch patchDocument) {
+    public StockDto updatePriceById(long stockId, Map<Object,Object> fields) {
 	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	final Stock modified = applyPatchToStock(patchDocument, stock);
-	Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-	modified.setLastUpdate(timestamp);
-	return updateStock(modified);
+	fields.forEach((key,value)->{
+	    FieldValueSelector.applyCorrectFieldValue(key, value, Stock.class, stock);
+	});
+	
+	return updateStock(stock);
     }
-    
-    private Stock applyPatchToStock(JsonPatch patchDocument, Stock targetStock) {
-	log.debug("original stock  {}", targetStock);
-
-        //Converts the original user to a JsonStructure
-        JsonStructure target = objectMapper.convertValue(targetStock, JsonStructure.class);
-        //Applies the patch to the original stock
-        JsonValue pachedStock = patchDocument.apply(target);
-
-        //Converts the JsonValue to a User instance
-        Stock modifiedStock = objectMapper.convertValue(pachedStock, Stock.class);
-        return modifiedStock;
-    }
-    
     
     private StockDto updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
 	final Stock updated = stockRepository.saveAndFlush(stock);
 	return stockMapper.stockToDto(updated);
     }
+    
+    
 
 }

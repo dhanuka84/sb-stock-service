@@ -1,8 +1,7 @@
 package com.sb.stock.service.services;
 
 import java.util.List;
-
-import javax.json.JsonPatch;
+import java.util.Map;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.validation.annotation.Validated;
@@ -13,7 +12,7 @@ import com.sb.stock.model.StockPagedList;
 @Validated
 public interface StockService {
 
-    StockDto createStock(final StockDto stockDto);
+    StockDto createStock(StockDto stockDto);
 
     List<StockDto> getStocks();
     
@@ -23,5 +22,5 @@ public interface StockService {
 
     StockDto getStocksById(long stockId);
 
-    StockDto updatePriceById(long stockId, JsonPatch patchDocument);
+    StockDto updatePriceById(long stockId, Map<Object,Object> fields);
 }

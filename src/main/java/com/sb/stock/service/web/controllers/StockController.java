@@ -1,6 +1,7 @@
 package com.sb.stock.service.web.controllers;
 
-import javax.json.JsonPatch;
+import java.util.Map;
+
 import javax.validation.Valid;
 
 import org.springframework.data.domain.PageRequest;
@@ -69,9 +70,8 @@ public class StockController {
 
     @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId,
-	    @RequestBody JsonPatch patch) {
-	return stockService.updatePriceById(stockId,patch);
+    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId, Map<Object,Object> fields) {
+	return stockService.updatePriceById(stockId,fields);
     }
 
     

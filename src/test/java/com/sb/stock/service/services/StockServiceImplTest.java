@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import java.util.Collections;
+import java.util.Map;
+
 import javax.json.Json;
 import javax.json.JsonPatch;
 import javax.json.JsonPatchBuilder;
@@ -74,11 +77,8 @@ class StockServiceImplTest extends BaseServiceTest {
 	testStockDto3.setId(null);
 	StockDto stock = StockService.createStock(testStockDto3);
 	assertThat(stock.getId()).isNotNull();
-	
-	JsonPatchBuilder builder = Json.createPatchBuilder();
-	JsonPatch patch = builder.replace("/currentPrice", "2000").build();;
 		 
-	StockDto updatedStock = StockService.updatePriceById(id3, patch);
+	StockDto updatedStock = StockService.updatePriceById(id3, Collections.singletonMap("currentPrice","2000"));
 	assertEquals(2000, updatedStock.getCurrentPrice().intValue());
 
     }

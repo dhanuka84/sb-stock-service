@@ -12,6 +12,7 @@ import javax.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Proxy;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -63,7 +64,7 @@ public class Stock {
 	@Column(updatable = true,name="currentPrice")
 	private BigDecimal currentPrice;
 	
-	@CreationTimestamp
+	@UpdateTimestamp
 	@Column(updatable = true,name="dbUpdateTime")
 	private Timestamp dbUpdateTime;
 
