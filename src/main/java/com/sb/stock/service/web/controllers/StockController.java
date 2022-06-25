@@ -70,7 +70,7 @@ public class StockController {
 
     @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId, Map<Object,Object> fields) {
+    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId, @RequestBody final Map<Object,Object> fields) {
 	return stockService.updatePriceById(stockId,fields);
     }
 

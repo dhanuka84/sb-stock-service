@@ -47,5 +47,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/home/dhanuka/eclipse/java-2022-03/eclipse/lombok.jar"/>
+	<classpathentry kind="lib" path="target/sb-stock-service-1.0-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
