@@ -242,6 +242,14 @@
 			<artifactId>springdoc-openapi-ui</artifactId>
 			<version>1.6.8</version>
 		</dependency>
+		
+		<!--Integration test using Karate-->
+		<dependency>
+    		<groupId>com.intuit.karate</groupId>
+    		<artifactId>karate-junit5</artifactId>
+    		<version>1.2.0</version>
+    		<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 
@@ -261,7 +269,16 @@
 	</repositories>
 
 	<build>
+		<testResources>
+        	<testResource>
+            	<directory>src/test/java</directory>
+            	<excludes>
+                	<exclude>**/*.java</exclude>
+            	</excludes>
+        	</testResource>
+    	</testResources>     
 		<plugins>
+			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -368,6 +385,19 @@
 					</images>
 				</configuration>
 			</plugin>
+			<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.1</version>
+                <configuration>
+                    <excludes>
+                        <exclude>karate/**/*.java</exclude>
+                    </excludes>
+                    <includes>
+                        <include>com/**/*.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 
