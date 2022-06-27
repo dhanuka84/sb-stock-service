@@ -13,8 +13,11 @@ public class WebConfig implements WebFluxConfigurer{
     @Autowired
     private JsonPatchHttpMessageConverter jsonPatch;
     
-    public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
-	System.out.println();
-	configurer.customCodecs().register(jsonPatch);
-    }
+    /*
+     * if this registered,
+     * You would need an array instead of json object for http patch request
+     * 
+     * public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
+     * System.out.println(); configurer.customCodecs().register(jsonPatch); }
+     */
 }

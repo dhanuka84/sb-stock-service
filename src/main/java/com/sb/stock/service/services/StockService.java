@@ -1,6 +1,6 @@
 package com.sb.stock.service.services;
 
-import javax.json.JsonPatch;
+import java.util.Map;
 
 import org.springframework.validation.annotation.Validated;
 
@@ -22,6 +22,6 @@ public interface StockService {
 
     Uni<StockDto> getStocksById(Long stockId);
 
-    Uni<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument);
+    Uni<StockDto> updatePriceById(Long stockId, Map<Object,Object> fields);
 
 }

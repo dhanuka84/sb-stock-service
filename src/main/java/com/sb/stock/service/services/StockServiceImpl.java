@@ -2,8 +2,11 @@ package com.sb.stock.service.services;
 
 
 import java.sql.Timestamp;
+import java.util.Map;
 
+import javax.json.Json;
 import javax.json.JsonPatch;
+import javax.json.JsonPatchBuilder;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
 
@@ -14,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
 import com.sb.stock.service.domain.Stock;
 import com.sb.stock.service.web.mappers.StockMapper;
+import com.sb.stock.utils.FieldValueSelector;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -73,23 +77,29 @@ public class StockServiceImpl implements StockService {
 	return handler.get(stockId).map(stockMapper::stockToDto);
     }
 
-    @Override 
-    public Uni<StockDto> updatePriceById(Long stockId, JsonPatch patchDocument) {
-	Uni<Stock> stock = handler.get(stockId);
-	return stock
-		.map(i -> applyPatchToStock(patchDocument, i) )
-		.flatMap(this::updateStock);
+    @Override
+    public Uni<StockDto> updatePriceById(Long stockId, final Map<Object, Object> fields) {
+	final Uni<Stock> stock = handler.get(stockId);
+	final JsonPatchBuilder builder = Json.createPatchBuilder();
+	fields.forEach((key, value) -> {
+	    // assume all the keys and values are strings
+	    builder.add("/" + (String) key, String.valueOf(value));
+	});
+	log.debug("original stock  {}", stock);
+	JsonPatch patch = builder.build();
+	return stock.map(i -> applyPatchToStock(patch, i)).flatMap(this::updateStock);
+
     }
     
     private Stock applyPatchToStock(JsonPatch patchDocument, Stock targetStock) {
 	log.debug("original stock  {}", targetStock);
 
-        //Converts the original user to a JsonStructure
+        //Converts the original stock to a JsonStructure
         JsonStructure target = objectMapper.convertValue(targetStock, JsonStructure.class);
         //Applies the patch to the original stock
         JsonValue pachedStock = patchDocument.apply(target);
 
-        //Converts the JsonValue to a User instance
+        //Converts the JsonValue to a stock instance
         Stock modifiedStock = objectMapper.convertValue(pachedStock, Stock.class);
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         modifiedStock.setLastUpdate(timestamp);
