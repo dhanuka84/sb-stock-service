@@ -21,6 +21,11 @@ import com.sb.stock.service.services.StockService;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -38,14 +43,17 @@ public class StockController {
     }
 
     @PostMapping(path = "stocks", produces = "application/json", consumes = "application/json")
+    @Operation(description = "Create a test model demo", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody())
     @ResponseStatus(HttpStatus.OK)
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
     public Uni<StockDto> createStock(@Valid @RequestBody StockDto stockDto) {
 
 	return stockService.createStock(Uni.createFrom().item(stockDto));
 
     }
     
-    @GetMapping("stocks")
+    @GetMapping(path = "stocks", produces = "application/json")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
     public Multi<StockDto> listStocks(@RequestParam(value = "pageNumber", required = false) Integer pageNumber,
 	    			     @RequestParam(value = "pageSize", required = false) Integer pageSize){
 
@@ -61,14 +69,16 @@ public class StockController {
     }
 
 
-    @GetMapping(path = "stocks/{stockId}")
+    @GetMapping(path = "stocks/{stockId}", produces = "application/json")
     @ResponseStatus(HttpStatus.OK)
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
     public Uni<StockDto> getStocksById(@PathVariable("stockId") Long stockId) {
 	return stockService.getStocksById(stockId);
     }
 
-    @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json")
+    @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json", produces = "application/json")
     @ResponseStatus(HttpStatus.OK)
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
     public Uni<StockDto> updateStocksById(@PathVariable("stockId") Long stockId,
 	    @RequestBody final Map<Object,Object> fields) {
 	return stockService.updatePriceById(stockId,fields);
@@ -78,6 +88,7 @@ public class StockController {
 
     @DeleteMapping("stocks/{stockId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
     public Uni<Void> deleteStocks(@PathVariable("stockId") long stockId) {
 	return stockService.deleteStock(stockId);
     }
