@@ -3,69 +3,40 @@ package com.sb.stock.service.domain;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Version;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Proxy;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
-@Getter
-@Setter
-
-
-@Entity
-@ToString
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Proxy(lazy = false)
+@Table("stock")
 public class Stock {
 
 	@Id
-	/*
-	 * @GeneratedValue(generator = "UUID")
-	 * 
-	 * @GenericGenerator( name = "UUID", strategy = "org.hibernate.id.UUIDGenerator"
-	 * )
-	 */
-
-	/*
-	 * @Type(type="org.hibernate.type.UUIDCharType")
-	 * 
-	 * @Column(length = 36, columnDefinition = "varchar(36)", updatable = false,
-	 * nullable = false )
-	 * 
-	 * private UUID id;
-	 */
-	@GeneratedValue(generator = "native")
-	@GenericGenerator(name = "native", strategy = "native")
 	private Long id;
 
 	@Version
+	@Column("id")
 	private Long version;
 	
+	@Column("id")
 	private String name;
 
-	@Column(updatable = true,name="lastUpdate")
+	@Column("last_update")
 	private Timestamp lastUpdate;
 
-	@Column(updatable = true,name="currentPrice")
+	@Column("current_price")
 	private BigDecimal currentPrice;
 	
-	@UpdateTimestamp
-	@Column(updatable = true,name="dbUpdateTime")
+	@Column("db_update_time")
 	private Timestamp dbUpdateTime;
 
 }

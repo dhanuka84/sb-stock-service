@@ -55,15 +55,15 @@ public abstract class BaseServiceTest {
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 
 		testStock1 = StockRepository.save(Stock.builder().lastUpdate(timestamp)
-				.currentPrice(BigDecimal.valueOf(123.50)).build());
+				.currentPrice(BigDecimal.valueOf(123.50)).build()).block();
 		StockRepository.save(testStock1);
 
 		testStock2 = StockRepository.save(Stock.builder().lastUpdate(timestamp)
-				.currentPrice(BigDecimal.valueOf(123.50)).build());
+				.currentPrice(BigDecimal.valueOf(123.50)).build()).block();
 		StockRepository.save(testStock2);
 
 		testStock3 = StockRepository.save(Stock.builder().lastUpdate(timestamp)
-				.currentPrice(BigDecimal.valueOf(123.50)).build());
+				.currentPrice(BigDecimal.valueOf(123.50)).build()).block();
 		StockRepository.save(testStock3);
 
 	}

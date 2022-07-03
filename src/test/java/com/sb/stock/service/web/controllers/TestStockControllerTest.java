@@ -1,7 +1,6 @@
 package com.sb.stock.service.web.controllers;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -9,22 +8,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,8 +30,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.services.StockService;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 
@@ -67,17 +64,17 @@ class TestStockControllerTest {
 
 	BigDecimal val1 = BigDecimal.valueOf(100);
 	StockDto stock = buildStock(11);
+	Flux<StockDto> page = Flux.just(stock);
 	
-	StockPagedList page = new StockPagedList(Collections.singletonList(stock),PageRequest.of(1, 1), 1L);
-	given(StockService.listStocks(any(Pageable.class))).willReturn(page);
+	given(StockService.listStocks(1,2)).willReturn(page);
 
 	mockMvc.perform(get(API_ROOT + "stocks").accept(MediaType.APPLICATION_JSON))
 	.andExpect(status().isOk())
 	.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.content", hasSize(1)));
+        ;
 	
 
-	then(StockService).should().listStocks(any(Pageable.class));
+	then(StockService).should().listStocks(1,2);
     }
 
     @Test
@@ -113,7 +110,7 @@ class TestStockControllerTest {
 	String req = asJsonString(stock);
 	System.out.print(req);
 
-	given(StockService.createStock(stock)).willReturn(output);
+	given(StockService.createStock(stock)).willReturn(Mono.just(output));
 	MvcResult result = mockMvc.perform(post(API_ROOT + "stocks").contentType(MediaType.APPLICATION_JSON)
 		.accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)

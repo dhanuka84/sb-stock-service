@@ -1,31 +1,29 @@
 package com.sb.stock.service.services;
 
-import static org.apache.commons.collections4.CollectionUtils.emptyIfNull;
-
-import java.lang.reflect.Field;
-import java.math.BigDecimal;
-import java.util.List;
+import java.sql.Timestamp;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import javax.json.Json;
+import javax.json.JsonPatch;
+import javax.json.JsonPatchBuilder;
+import javax.json.JsonStructure;
+import javax.json.JsonValue;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ReflectionUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.domain.Stock;
 import com.sb.stock.service.exception.NotFound;
 import com.sb.stock.service.repositories.StockRepository;
-import com.sb.stock.service.web.mappers.StockMapper;
-import com.sb.stock.utils.FieldValueSelector;
+import com.sb.stock.service.web.mappers.StockReactiveMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -33,79 +31,97 @@ import lombok.extern.slf4j.Slf4j;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-    private final StockMapper stockMapper;
     private final ObjectMapper objectMapper;
+    
+    @Autowired
+    private StockReactiveMapper stockMapper;
 
     @Override
     @Transactional
-    public StockDto createStock(final StockDto stockDto) {
-	log.debug("================ Placing a Stock ============",stockDto);
-	final Stock stock = stockMapper.dtoToStock(stockDto);
-	stock.setId(null);
+    public Mono<StockDto> createStock(final StockDto stockDto) {
+	log.debug("================ Placing a Stock ============", stockDto);	
+	return stockMapper
+		.toDTO(stockRepository
+		.save(stockMapper.toEntity(stockDto))
+		.log());
+    }
+
+    @Override
+    public Flux<StockDto> listStocks(final Integer page, final Integer limit) {
+
+	long offset = (page - 1) * limit;
+	return stockMapper
+		.toDTO(stockRepository
+		.paginate(offset, limit)
+		.switchIfEmpty(Flux.error(new NotFound(" No any stock"))))
+		.log();
+
+    }
+
+    @Override
+    public Flux<StockDto> getStocks() {
+	return stockMapper
+		.toDTO(stockRepository
+		.findAll()
+		.switchIfEmpty(Flux.error(new NotFound("No any stock"))))
+		.log();
 	
-	stockRepository.saveAndFlush(stock);
-	return stockMapper.stockToDto(stock);
-    }
-    
-    @Override
-    public StockPagedList listStocks(Pageable pageable) {
-	Page<Stock> stockPage = stockRepository.findAll(pageable);
-
-        return new StockPagedList(stockPage
-                .stream()
-                .map(stockMapper::stockToDto)
-                .collect(Collectors.toList()), PageRequest.of(
-                stockPage.getPageable().getPageNumber(),
-                stockPage.getPageable().getPageSize()),
-                stockPage.getTotalElements());
-    }
-    
-
-
-
-    @Override
-    public List<StockDto> getStocks() {
-	final List<Stock> stats = stockRepository.findAll();
-	List<StockDto> list = emptyIfNull(stats).stream().map(v -> stockMapper.stockToDto(v)).collect(Collectors.toList());
-	return list;
-    }
-
-    @Override
-    @Transactional
-    public void deleteStock(long stockId) {	
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	deleteStockById(stock);
 	
     }
-    
-    
-    private void deleteStockById(Stock stock) {
-	stockRepository.delete(stock);
+
+    @Override
+    public Mono<Void> deleteStock(long stockId) {
+	return stockRepository
+		.findById(stockId)
+		.switchIfEmpty(Mono.error(new NotFound("Stock with id [" + stockId + "] not found")))
+		.flatMap(existingStock -> stockRepository.delete(existingStock));
     }
 
     @Override
-    public StockDto getStocksById(long stockId) {
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	return stockMapper.stockToDto(stock);
+    public Mono<StockDto> getStocksById(long stockId) {
+	return stockMapper
+		.toDTO(stockRepository
+		.findById(stockId)
+		.switchIfEmpty(Mono.error(new NotFound("Stock with id [" + stockId + "] not found"))));
+		
     }
 
-    @Override   
-    @Transactional
-    public StockDto updatePriceById(long stockId, Map<Object,Object> fields) {
-	final Stock stock = stockRepository.findById(stockId).orElseThrow(() -> new NotFound(" Stock with id ["+ stockId +"] not found "));
-	fields.forEach((key,value)->{
-	    FieldValueSelector.applyCorrectFieldValue(key, value, Stock.class, stock);
+    @Override
+    // @Transactional
+    public Mono<StockDto> updatePriceById(long stockId, Map<Object, Object> fields) {
+
+	final JsonPatchBuilder builder = Json.createPatchBuilder();
+	fields.forEach((key, value) -> {
+	    // assume all the keys and values are strings
+	    builder.add("/" + (String) key, String.valueOf(value));
 	});
 	
-	return updateStock(stock);
+	JsonPatch patch = builder.build();
+	
+	return stockRepository
+	.findById(stockId)
+	.switchIfEmpty(Mono.error(new NotFound(" Stock with id [" + stockId + "] not found ")))
+	.map(i -> applyPatchToStock(patch, i))
+	.flatMap(this::updateStock);
     }
     
-    private StockDto updateStock(final Stock stock) {
-	log.debug("modified stock {}", stock);
-	final Stock updated = stockRepository.saveAndFlush(stock);
-	return stockMapper.stockToDto(updated);
+    private Stock applyPatchToStock(JsonPatch patchDocument, Stock targetStock) {
+	log.debug("original stock  {}", targetStock);
+
+        //Converts the original stock to a JsonStructure
+        JsonStructure target = objectMapper.convertValue(targetStock, JsonStructure.class);
+        //Applies the patch to the original stock
+        JsonValue pachedStock = patchDocument.apply(target);
+
+        //Converts the JsonValue to a stock instance
+        Stock modifiedStock = objectMapper.convertValue(pachedStock, Stock.class);
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        modifiedStock.setLastUpdate(timestamp);
+        return modifiedStock;
     }
-    
-    
+
+    private Mono<StockDto> updateStock(final Stock stock) {
+	return stockMapper.toDTO(stockRepository.save(stock)).log();
+    }
 
 }

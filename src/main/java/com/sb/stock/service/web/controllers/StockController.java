@@ -6,6 +6,8 @@ import javax.validation.Valid;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -14,15 +16,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.services.StockService;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequestMapping("/api/")
@@ -40,15 +42,16 @@ public class StockController {
 
     @PostMapping(path = "stocks", produces = "application/json", consumes = "application/json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto createStock(@Valid @RequestBody final StockDto stockDto) {
+    public Mono<StockDto> createStock(@Valid @RequestBody final StockDto stockDto) {
 
 	return stockService.createStock(stockDto);
 
     }
     
-    @GetMapping("stocks")
-    public StockPagedList listStocks(@RequestParam(value = "pageNumber", required = false) Integer pageNumber,
-                                         @RequestParam(value = "pageSize", required = false) Integer pageSize){
+    @GetMapping(value = "stocks", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<StockDto> listStocks(@RequestParam(value = "pageNumber", required = false) Integer pageNumber,
+                                         @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                         @RequestParam Map<String, String> filterParams){
 
         if (pageNumber == null || pageNumber < 0){
             pageNumber = DEFAULT_PAGE_NUMBER;
@@ -58,28 +61,29 @@ public class StockController {
             pageSize = DEFAULT_PAGE_SIZE;
         }
 
-        return stockService.listStocks(PageRequest.of(pageNumber, pageSize));
+        return stockService.listStocks(pageNumber, pageSize);
     }
 
 
     @GetMapping(path = "stocks/{stockId}")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto getStocksById(@PathVariable("stockId") Long stockId) {
-	return stockService.getStocksById(stockId);
+    public Mono<ResponseEntity<StockDto>> getStocksById(@PathVariable("stockId") Long stockId) {
+	return stockService.getStocksById(stockId).map(dto -> ResponseEntity.ok(dto));
+	
     }
 
     @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json")
     @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody StockDto updateStocksById(@PathVariable("stockId") Long stockId, @RequestBody final Map<Object,Object> fields) {
-	return stockService.updatePriceById(stockId,fields);
+    public Mono<ResponseEntity<StockDto>> updateStocksById(@PathVariable("stockId") Long stockId, @RequestBody final Map<Object,Object> fields) {
+	return stockService.updatePriceById(stockId,fields).map(dto -> ResponseEntity.ok(dto));
     }
 
     
 
     @DeleteMapping("stocks/{stockId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteStocks(@PathVariable("stockId") long stockId) {
-	stockService.deleteStock(stockId);
+    public Mono<ResponseEntity<Void>> deleteStocks(@PathVariable("stockId") long stockId) {
+	return stockService.deleteStock(stockId).map(dto -> ResponseEntity.ok(dto));
     }
 
 }

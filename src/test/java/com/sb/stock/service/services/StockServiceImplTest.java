@@ -6,22 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.Collections;
-import java.util.Map;
-
-import javax.json.Json;
-import javax.json.JsonPatch;
-import javax.json.JsonPatchBuilder;
 
 import org.junit.Rule;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.PageRequest;
 
 import com.sb.stock.model.StockDto;
-import com.sb.stock.model.StockPagedList;
 import com.sb.stock.service.exception.NotFound;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @SpringBootTest
 class StockServiceImplTest extends BaseServiceTest {
@@ -34,8 +30,8 @@ class StockServiceImplTest extends BaseServiceTest {
     void createStock() {
 
 	testStockDto1.setId(null);
-	StockDto stock = StockService.createStock(testStockDto1);
-	assertThat(stock.getId()).isNotNull();
+	Mono<StockDto> stock = StockService.createStock(testStockDto1);
+	assertThat(stock.block().getId()).isNotNull();
 
     }
 
@@ -53,14 +49,14 @@ class StockServiceImplTest extends BaseServiceTest {
     @Test
     @Order(3)
     void testPagination() {
-	StockPagedList list = StockService.listStocks(PageRequest.of(1, 2));
-	assertEquals(2, list.getSize());
+	Flux<StockDto>  list = StockService.listStocks(1, 2);
+	assertEquals(2, list.count().block());
     }
 
     @Test
     @Order(4)
     void deleteStocks() {
-	StockDto stock = StockService.getStocksById(1);
+	Mono<StockDto> stock = StockService.getStocksById(1);
 	assertNotEquals(null, stock);
 	StockService.deleteStock(1);
 	 //when
@@ -75,11 +71,11 @@ class StockServiceImplTest extends BaseServiceTest {
     void updateStock() {
 
 	testStockDto3.setId(null);
-	StockDto stock = StockService.createStock(testStockDto3);
-	assertThat(stock.getId()).isNotNull();
+	Mono<StockDto> stock = StockService.createStock(testStockDto3);
+	assertThat(stock.block().getId()).isNotNull();
 		 
-	StockDto updatedStock = StockService.updatePriceById(id3, Collections.singletonMap("currentPrice","2000"));
-	assertEquals(2000, updatedStock.getCurrentPrice().intValue());
+	Mono<StockDto> updatedStock = StockService.updatePriceById(id3, Collections.singletonMap("currentPrice","2000"));
+	assertEquals(2000, updatedStock.block().getCurrentPrice().intValue());
 
     }
 }
