@@ -72,7 +72,7 @@ public class StockApplication {
     @Bean
     public RouterFunction<ServerResponse> routes(StockController controller) {
         return route(GET("/api/stocks"), controller::listStocks)
-            .andRoute(POST("/api/"), controller::createStock)
+            .andRoute(POST("/api/stocks"), controller::createStock)
             .andRoute(GET("/api/stocks/{stockId}"), controller::getStocksById)
             .andRoute(PATCH("/api/stocks/{stockId}"), controller::updateStocksById)
             .andRoute(DELETE("/api/stocks/{stockId}"), controller::deleteStocks);
