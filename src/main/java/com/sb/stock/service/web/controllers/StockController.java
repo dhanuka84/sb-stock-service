@@ -1,96 +1,134 @@
 package com.sb.stock.service.web.controllers;
 
+import static io.smallrye.mutiny.converters.uni.UniReactorConverters.toMono;
+
+import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 
-import javax.validation.Valid;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
 import com.sb.stock.service.services.StockService;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
+@Component
+@RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/api/")
-@RestController
+/*
+ * @RequestMapping("/api/")
+ * 
+ * @RestController
+ */
 public class StockController {
 
     private static final Integer DEFAULT_PAGE_NUMBER = 0;
     private static final Integer DEFAULT_PAGE_SIZE = 5;
     
     private final StockService stockService;
-
-    public StockController(final StockService stockService) {
-	this.stockService = stockService;
-    }
-
-    @PostMapping(path = "stocks", produces = "application/json", consumes = "application/json")
-    @Operation(description = "Create a test model demo", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody())
-    @ResponseStatus(HttpStatus.OK)
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
-    public Uni<StockDto> createStock(@Valid @RequestBody StockDto stockDto) {
-
-	return stockService.createStock(Uni.createFrom().item(stockDto));
-
-    }
     
-    @GetMapping(path = "stocks", produces = "application/json")
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
-    public Multi<StockDto> listStocks(@RequestParam(value = "pageNumber", required = false) Integer pageNumber,
-	    			     @RequestParam(value = "pageSize", required = false) Integer pageSize){
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    public Mono<ServerResponse> createStock(ServerRequest req) {
 
-        if (pageNumber == null || pageNumber < 0){
-            pageNumber = DEFAULT_PAGE_NUMBER;
-        }
+	return req.bodyToMono(StockDto.class)
+		.flatMap(dto -> this.stockService.createStock(dto).convert().with(toMono()))
+		.flatMap(p -> ServerResponse.created(URI.create("stocks/" + p.getId())).build());
 
-        if (pageSize == null || pageSize < 1) {
-            pageSize = DEFAULT_PAGE_SIZE;
-        }
-
-        return stockService.listStocks(pageNumber,pageSize);
-    }
-
-
-    @GetMapping(path = "stocks/{stockId}", produces = "application/json")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
-    public Uni<StockDto> getStocksById(@PathVariable("stockId") Long stockId) {
-	return stockService.getStocksById(stockId);
-    }
-
-    @PatchMapping(path = "stocks/{stockId}", consumes = "application/json-patch+json", produces = "application/json")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
-    public Uni<StockDto> updateStocksById(@PathVariable("stockId") Long stockId,
-	    @RequestBody final Map<Object,Object> fields) {
-	return stockService.updatePriceById(stockId,fields);
     }
 
     
+    /*
+     * @GetMapping(path = "stocks", produces = "application/json")
+     * 
+     * @ApiResponses(value = { @ApiResponse(responseCode = "200", description =
+     * "create Tweets") })
+     */
+    public Mono<ServerResponse> listStocks(ServerRequest req) {
+   // public Uni<List<StockDto>> listStocks(@RequestParam(value = "pageNumber", required = false) Integer pageNumber,
+	    			    // @RequestParam(value = "pageSize", required = false) Integer pageSize){
+	
+	Optional<String> pageNumber = req.queryParam("pageNumber");
+	Optional<String> pageSize = req.queryParam("pageSize");
+	
+	int number = pageNumber.isPresent() ? Integer.valueOf(pageNumber.get()) : DEFAULT_PAGE_NUMBER;
+	int size = pageSize.isPresent() ? Integer.valueOf(pageSize.get()) : DEFAULT_PAGE_SIZE;
 
-    @DeleteMapping("stocks/{stockId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })
-    public Uni<Void> deleteStocks(@PathVariable("stockId") long stockId) {
-	return stockService.deleteStock(stockId);
+        if (number < 0){
+            number = DEFAULT_PAGE_NUMBER;
+        }
+
+        if (size < 1) {
+            size = DEFAULT_PAGE_SIZE;
+        }
+
+        return ServerResponse.ok()
+        		     .body(stockService.listStocks(number,size).convert().with(toMono()), StockDto.class);
+    }
+
+
+    /*
+     * @GetMapping(path = "stocks/{stockId}", produces = "application/json")
+     * 
+     * @ResponseStatus(HttpStatus.OK)
+     
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "create Tweets") })*/
+    public Mono<ServerResponse> getStocksById(ServerRequest req) {
+	return stockService.getStocksById(Long.valueOf(req.pathVariable("stockId")))
+			   .convert().with(toMono())
+			   .doOnError(error -> log.error("Got error: "+ error.getMessage()))
+			   .flatMap(post -> ServerResponse.ok().body(Mono.just(post), StockDto.class));
+    }
+
+    /*
+     * @PatchMapping(path = "stocks/{stockId}", consumes =
+     * "application/json-patch+json", produces = "application/json")
+     * 
+     * @ResponseStatus(HttpStatus.OK)
+     * 
+     * @ApiResponses(value = { @ApiResponse(responseCode = "200", description =
+     * "create Tweets") }) public Mono<ServerResponse>
+     * updateStocksById(@PathVariable("stockId") Long stockId,
+     * 
+     * @RequestBody final Map<Object,Object> fields) {
+     */
+    public Mono<ServerResponse> updateStocksById(ServerRequest req) {
+	final Long id = Long.valueOf(req.pathVariable("stockId"));
+	return req.bodyToMono(Map.class)
+		.flatMap(fields -> this.stockService.updatePriceById(id, fields).convert().with(toMono()))
+		.flatMap(post -> ServerResponse.ok().body(Mono.just(post), StockDto.class));
+	 
+    }
+
+    
+
+    /*
+     * @DeleteMapping("stocks/{stockId}")
+     * 
+     * @ResponseStatus(HttpStatus.NO_CONTENT)
+     * 
+     * @ApiResponses(value = { @ApiResponse(responseCode = "200", description =
+     * "create Tweets") })
+     */
+    public Mono<ServerResponse> deleteStocks(ServerRequest req) {
+	return stockService.deleteStock(Long.valueOf(req.pathVariable("stockId")))
+		.convert().with(toMono())
+		.doOnError(error -> log.error("Got error: "+ error.getMessage()))
+		.flatMap(d -> ServerResponse.noContent().build());
+		
     }
 
 }

@@ -1,5 +1,6 @@
 package com.sb.stock.service.services;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.validation.annotation.Validated;
@@ -12,16 +13,16 @@ import io.smallrye.mutiny.Uni;
 @Validated
 public interface StockService {
 
-    Uni<StockDto> createStock(Uni<StockDto> stockDto);
+    Uni<StockDto> createStock(StockDto stockDto);
 
-    Multi<StockDto> getStocks();
+    Uni<List<StockDto>> getStocks();
     
-    Multi<StockDto> listStocks(int pageNumber, int size);
+    Uni<List<StockDto>> listStocks(int pageNumber, int size);
 
     Uni<Void> deleteStock(Long stockId);
 
     Uni<StockDto> getStocksById(Long stockId);
 
-    Uni<StockDto> updatePriceById(Long stockId, Map<Object,Object> fields);
+    Uni<StockDto> updatePriceById(Long stockId, Map fields);
 
 }

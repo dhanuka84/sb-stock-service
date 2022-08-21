@@ -2,6 +2,7 @@ package com.sb.stock.service.services;
 
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 
 import javax.json.Json;
@@ -11,42 +12,42 @@ import javax.json.JsonStructure;
 import javax.json.JsonValue;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sb.stock.model.StockDto;
 import com.sb.stock.service.domain.Stock;
-import com.sb.stock.service.web.mappers.StockMapper;
-import com.sb.stock.utils.FieldValueSelector;
+import com.sb.stock.service.web.mappers.StockReactiveMapper;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+@Component
+@RequiredArgsConstructor
 @Slf4j
-@Service
+//@Service
 public class StockServiceImpl implements StockService {
 
     @Autowired
-    private StockHandler handler;
+    private StockPersistanceHandler handler;
     @Autowired
-    private StockMapper stockMapper;
+    private StockReactiveMapper stockMapper;
     @Autowired
     private ObjectMapper objectMapper;
 
     @Override
-    public Uni<StockDto> createStock(final Uni<StockDto> stockDto) {
+    public Uni<StockDto> createStock(final StockDto stockDto) {
 	log.debug("================ Placing a Stock ============",stockDto);
-	return  stockDto
-		.map(stockMapper::dtoToStock)
-                .flatMap(handler::create)
-                .map(stockMapper::stockToDto);
+	
+	return handler.create(stockMapper.toEntity(stockDto)).map(stockMapper::toDTO);
     }
     
     @Override
-    public Multi<StockDto> listStocks(int pageNumber, int size) {
-	Multi<Stock> stockPage = handler.listStocks(pageNumber,size);
-	return stockPage.map(stockMapper::stockToDto);
+    public Uni<List<StockDto>> listStocks(int pageNumber, int size) {
+	Uni<List<Stock>> stockPage = handler.listStocks(pageNumber,size);
+	return stockMapper.toDTOList(stockPage);
 
 	/*
 	 * return new StockPagedList(stockPage .stream() .map(stockMapper::stockToDto)
@@ -60,8 +61,9 @@ public class StockServiceImpl implements StockService {
 
 
     @Override
-    public Multi<StockDto> getStocks() {
-	return handler.all().map(stockMapper::stockToDto);
+    public Uni<List<StockDto>> getStocks() {
+	Uni<List<Stock>> stockPage = handler.all();
+	return stockMapper.toDTOList(stockPage);
     }
 
     @Override
@@ -74,11 +76,11 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public Uni<StockDto> getStocksById(Long stockId) {
-	return handler.get(stockId).map(stockMapper::stockToDto);
+	return handler.get(stockId).map(stockMapper::toDTO);
     }
 
     @Override
-    public Uni<StockDto> updatePriceById(Long stockId, final Map<Object, Object> fields) {
+    public Uni<StockDto> updatePriceById(Long stockId, final Map fields) {
 	final Uni<Stock> stock = handler.get(stockId);
 	final JsonPatchBuilder builder = Json.createPatchBuilder();
 	fields.forEach((key, value) -> {
@@ -110,7 +112,7 @@ public class StockServiceImpl implements StockService {
     private Uni<StockDto> updateStock(final Stock stock) {
 	log.debug("modified stock {}", stock);
 	Uni<Stock> updated = handler.update(stock);
-	return updated.map(stockMapper::stockToDto);
+	return updated.map(stockMapper::toDTO);
     }
 
 }

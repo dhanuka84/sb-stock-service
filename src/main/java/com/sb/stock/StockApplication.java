@@ -1,10 +1,15 @@
 
 package com.sb.stock;
 
+import static org.springframework.web.reactive.function.server.RequestPredicates.DELETE;
+import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
+import static org.springframework.web.reactive.function.server.RequestPredicates.PATCH;
+import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+
 import javax.persistence.Persistence;
 
 import org.hibernate.reactive.mutiny.Mutiny;
-import org.springdoc.core.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -16,12 +21,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
-import org.springframework.web.reactive.config.EnableWebFlux;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.adapter.WebHttpHandlerBuilder;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-//import io.swagger.v3.oas.annotations.info.*;
-import io.swagger.v3.oas.models.info.*;
+import com.sb.stock.service.web.controllers.StockController;
+
 import reactor.netty.http.server.HttpServer;
 
 //@EnableFeignClients //needs to be on SBA class
@@ -63,5 +68,14 @@ public class StockApplication {
      * openApi.info(new Info().title("Stock API").version(appVersion)))
      * .pathsToMatch(paths).build(); }
      */
+    
+    @Bean
+    public RouterFunction<ServerResponse> routes(StockController controller) {
+        return route(GET("/api/stocks"), controller::listStocks)
+            .andRoute(POST("/api/"), controller::createStock)
+            .andRoute(GET("/api/stocks/{stockId}"), controller::getStocksById)
+            .andRoute(PATCH("/api/stocks/{stockId}"), controller::updateStocksById)
+            .andRoute(DELETE("/api/stocks/{stockId}"), controller::deleteStocks);
+    }
 
 }

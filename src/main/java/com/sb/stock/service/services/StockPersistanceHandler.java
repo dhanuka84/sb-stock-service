@@ -1,6 +1,7 @@
 package com.sb.stock.service.services;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
@@ -16,21 +17,21 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-class StockHandler {
+class StockPersistanceHandler {
 
     private final StockRepository posts;
 
-    public Multi<Stock> all() {
+    public Uni<List<Stock>> all() {
         //return posts.findAll().convert().with(toUni()).flatMapMany(Flux::fromIterable);
-        return posts.findAll().onItem().disjoint();
+        return posts.findAll();
     }
 
     public Uni<Stock> create(Stock stock) {
         return posts.save(stock);
     }
     
-    public Multi<Stock> listStocks(int offset, int limit) {
-	return posts.findByKeyword(offset, limit, null).onItem().disjoint();
+    public Uni<List<Stock>> listStocks(int offset, int limit) {
+	return posts.findByKeyword(offset, limit, null);
     }
 
     public Uni<Stock> get(Long id) {
